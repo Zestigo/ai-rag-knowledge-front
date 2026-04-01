@@ -1,0 +1,49 @@
+/* 主题语义层变量 */
+:root {
+  /* 基础变量 */
+  --background: #ffffff;
+  --foreground: #000000;
+  --muted-foreground: #374151;
+  --border: #d1d5db;
+  --card-bg: #ffffff;
+  
+  /* 语义层变量 */
+  --bg-soft: #f9fafb;
+  --text: var(--foreground);
+  --text-muted: var(--muted-foreground);
+  --border-color: var(--border);
+  --card-background: var(--card-bg);
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* 深色模式 */
+.dark {
+  /* 基础变量 */
+  --background: #030712;
+  --foreground: #ffffff;
+  --muted-foreground: #d1d5db;
+  --border: #374151;
+  --card-bg: #111827;
+  
+  /* 语义层变量 */
+  --bg-soft: #1f2937;
+  --text: var(--foreground);
+  --text-muted: var(--muted-foreground);
+  --border-color: var(--border);
+  --card-background: var(--card-bg);
+}
+
+/* Tailwind 变量桥接 */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-card: var(--card-bg);
+  --color-bg-soft: var(--bg-soft);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-border-color: var(--border-color);
+  --color-card-background: var(--card-background);
+}
