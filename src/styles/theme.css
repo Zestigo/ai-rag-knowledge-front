@@ -46,4 +46,9 @@
   --color-text-muted: var(--text-muted);
   --color-border-color: var(--border-color);
   --color-card-background: var(--card-background);
+  
+  --color-black: #000000;
+  --color-white: #ffffff;
+  
+  --dark-strategy: class;
 }

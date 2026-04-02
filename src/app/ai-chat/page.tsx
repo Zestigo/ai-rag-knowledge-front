@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import ThemeToggle from '@/components/ThemeToggle';
 
 // 消息类型定义
 interface Message {
@@ -10,11 +11,31 @@ interface Message {
   isFinished: boolean;
 }
 
+// 历史对话类型定义
+interface ChatHistory {
+  id: string;
+  title: string;
+  messages: Message[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export default function AIChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [model, setModel] = useState('deepseek-r1:1.5b');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [chatHistories, setChatHistories] = useState<ChatHistory[]>([
+    {
+      id: '1',
+      title: '新对话',
+      messages: [],
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+  ]);
+  const [currentChatId, setCurrentChatId] = useState<string>('1');
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // 滚动到底部
@@ -185,20 +206,137 @@ export default function AIChatPage() {
 
 
 
+  // 创建新对话
+  const createNewChat = () => {
+    const newChat: ChatHistory = {
+      id: Date.now().toString(),
+      title: '新对话',
+      messages: [],
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    setChatHistories(prev => [newChat, ...prev]);
+    setCurrentChatId(newChat.id);
+    setMessages([]);
+  };
+
+  // 切换对话
+  const switchChat = (chatId: string) => {
+    const chat = chatHistories.find(c => c.id === chatId);
+    if (chat) {
+      setCurrentChatId(chatId);
+      setMessages(chat.messages);
+    }
+  };
+
+  // 删除对话
+  const deleteChat = (chatId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setChatHistories(prev => prev.filter(c => c.id !== chatId));
+    if (currentChatId === chatId && chatHistories.length > 1) {
+      const remaining = chatHistories.filter(c => c.id !== chatId);
+      if (remaining.length > 0) {
+        setCurrentChatId(remaining[0].id);
+        setMessages(remaining[0].messages);
+      } else {
+        setMessages([]);
+      }
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
-      {/* 导航栏 */}
-      <nav className="bg-white dark:bg-gray-800 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">AI 对话</h1>
+    <div className="min-h-screen bg-background dark:bg-background flex">
+      {/* 侧边栏 */}
+      <aside 
+        className={`bg-card dark:bg-card border-r border-border dark:border-border transition-all duration-300 ease-in-out flex flex-col ${
+          sidebarOpen ? 'w-64' : 'w-0 overflow-hidden'
+        }`}
+      >
+        {/* 侧边栏头部 */}
+        <div className="p-4 border-b border-border dark:border-border">
+          <button
+            onClick={createNewChat}
+            className="w-full flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-900 text-white font-medium py-2 px-4 rounded-md transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span>新建对话</span>
+          </button>
+        </div>
+
+        {/* 历史对话列表 */}
+        <div className="flex-1 overflow-y-auto p-2">
+          <div className="text-xs font-semibold text-muted-foreground dark:text-muted-foreground uppercase tracking-wider mb-2 px-2">
+            历史对话
+          </div>
+          {chatHistories.map((chat) => (
+            <div
+              key={chat.id}
+              onClick={() => switchChat(chat.id)}
+              className={`group flex items-center justify-between p-3 rounded-lg cursor-pointer mb-1 transition-colors ${
+                currentChatId === chat.id
+                  ? 'bg-blue-100 dark:bg-blue-900/30'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+            >
+              <div className="flex items-center space-x-2 overflow-hidden">
+                <svg className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--foreground)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <span className="text-sm truncate" style={{ color: 'var(--foreground)' }}>{chat.title}</span>
+              </div>
+              <button
+                onClick={(e) => deleteChat(chat.id, e)}
+                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-all"
+                title="删除对话"
+              >
+                <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
             </div>
-            <div className="flex items-center">
-              <select
-                value={model}
+          ))}
+        </div>
+
+        {/* 侧边栏底部 */}
+        <div className="p-4 border-t border-border dark:border-border">
+          <div className="text-xs text-muted-foreground dark:text-muted-foreground text-center">
+            {chatHistories.length} 个对话
+          </div>
+        </div>
+      </aside>
+
+      {/* 主内容区域 */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* 导航栏 */}
+        <nav className="bg-card dark:bg-card shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between h-16">
+              <div className="flex items-center">
+                {/* 侧边栏切换按钮 */}
+                <button
+                  onClick={() => setSidebarOpen(!sidebarOpen)}
+                  className="mr-4 p-2 rounded-md text-muted-foreground hover:text-foreground dark:text-muted-foreground dark:hover:text-foreground hover:bg-bg-soft dark:hover:bg-bg-soft transition-colors"
+                  title={sidebarOpen ? '收起侧边栏' : '展开侧边栏'}
+                >
+                  <svg 
+                    className={`w-5 h-5 transition-transform duration-300 ${sidebarOpen ? '' : 'rotate-180'}`} 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                  </svg>
+                </button>
+                <h1 className="text-xl font-bold text-foreground dark:text-foreground">AI 对话</h1>
+              </div>
+              <div className="flex items-center space-x-3">
+                <ThemeToggle />
+                <select
+                  value={model}
                 onChange={(e) => setModel(e.target.value)}
-                className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md py-1 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="bg-card dark:bg-card border border-border dark:border-border rounded-md py-1 px-3 text-sm text-foreground dark:text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="deepseek-r1:1.5b">deepseek-r1:1.5b</option>
                 <option value="llama3:8b">llama3:8b</option>
@@ -210,10 +348,10 @@ export default function AIChatPage() {
       </nav>
 
       {/* 聊天区域 */}
-      <main className="flex-1 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6 flex flex-col">
         <div 
           ref={chatContainerRef}
-          className="bg-white dark:bg-gray-800 rounded-lg shadow-md h-[600px] overflow-y-auto p-4 mb-4"
+          className="bg-card dark:bg-card rounded-lg shadow-md flex-1 overflow-y-auto p-4 mb-4 max-w-5xl mx-auto w-full"
         >
           {messages.map((message, index) => (
             <div 
@@ -223,14 +361,14 @@ export default function AIChatPage() {
               <div 
                 className={`max-w-[80%] ${message.role === 'user' 
                   ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100' 
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                  : 'bg-bg-soft dark:bg-bg-soft text-foreground dark:text-foreground'
                 } rounded-lg p-4 shadow-sm`}
               >
                 {/* 思考过程 */}
                 {message.role === 'assistant' && message.thought && (
                   <div className="mb-3">
                     <button 
-                      className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center"
+                      className="text-xs text-muted-foreground dark:text-muted-foreground mb-1 flex items-center"
                       onClick={() => {
                         const element = document.getElementById(`thought-${index}`);
                         if (element) {
@@ -243,7 +381,7 @@ export default function AIChatPage() {
                       </svg>
                       思考过程
                     </button>
-                    <div id={`thought-${index}`} className="hidden bg-gray-200 dark:bg-gray-600 p-3 rounded-md text-xs">
+                    <div id={`thought-${index}`} className="hidden bg-bg-soft dark:bg-bg-soft p-3 rounded-md text-xs">
                       {message.thought}
                     </div>
                   </div>
@@ -256,9 +394,9 @@ export default function AIChatPage() {
           ))}
           {isLoading && (
             <div className="flex justify-start mb-4">
-              <div className="max-w-[80%] bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg p-4 shadow-sm">
+              <div className="max-w-[80%] bg-bg-soft dark:bg-bg-soft text-foreground dark:text-foreground rounded-lg p-4 shadow-sm">
                 <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 dark:border-gray-300 mr-2"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-muted-foreground dark:border-muted-foreground mr-2"></div>
                   <span>生成中...</span>
                 </div>
               </div>
@@ -267,7 +405,7 @@ export default function AIChatPage() {
         </div>
 
         {/* 输入区域 */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+        <div className="bg-card dark:bg-card rounded-lg shadow-md p-4 max-w-5xl mx-auto w-full">
           <div className="flex space-x-2">
             <input
               type="text"
@@ -275,7 +413,7 @@ export default function AIChatPage() {
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
               placeholder="输入消息..."
-              className="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md py-2 px-4 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 bg-bg-soft dark:bg-bg-soft border border-border dark:border-border rounded-md py-2 px-4 text-foreground dark:text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={isLoading}
             />
             <button
@@ -288,15 +426,7 @@ export default function AIChatPage() {
           </div>
         </div>
       </main>
-
-      {/* 页脚 */}
-      <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <p className="text-center text-gray-600 dark:text-gray-400 text-sm">
-            © 2026 AI 对话系统. All rights reserved.
-          </p>
-        </div>
-      </footer>
+      </div>
     </div>
   );
 }

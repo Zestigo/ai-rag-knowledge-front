@@ -26,25 +26,24 @@ export function ThemeProvider({
   children: React.ReactNode;
 }) {
   const [theme, setThemeState] = useState<Theme>('light');
-  const [mounted, setMounted] = useState(false);
 
   /**
    * 初始化主题（只执行一次）
    */
   useEffect(() => {
     const initializeTheme = () => {
-      const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
 
-      if (stored === 'light' || stored === 'dark') {
-        setThemeState(stored);
-      } else {
-        const prefersDark = window.matchMedia(
-            '(prefers-color-scheme: dark)'
-        ).matches;
-        setThemeState(prefersDark ? 'dark' : 'light');
+        if (stored === 'light' || stored === 'dark') {
+          setThemeState(stored);
+        } else {
+          const prefersDark = window.matchMedia(
+              '(prefers-color-scheme: dark)'
+          ).matches;
+          setThemeState(prefersDark ? 'dark' : 'light');
+        }
       }
-
-      setMounted(true);
     };
 
     initializeTheme();
@@ -54,8 +53,6 @@ export function ThemeProvider({
    * 同步到 DOM & localStorage
    */
   useEffect(() => {
-    if (!mounted) return;
-
     const root = document.documentElement;
 
     // 推荐统一用 data-theme（更语义化）
@@ -65,7 +62,7 @@ export function ThemeProvider({
     root.classList.toggle('dark', theme === 'dark');
 
     localStorage.setItem(STORAGE_KEY, theme);
-  }, [theme, mounted]);
+  }, [theme]);
 
   const setTheme = (t: Theme) => {
     setThemeState(t);
@@ -76,13 +73,6 @@ export function ThemeProvider({
         prev === 'light' ? 'dark' : 'light'
     );
   };
-
-  /**
-   * 防止 SSR hydration mismatch
-   */
-  if (!mounted) {
-    return null;
-  }
 
   return (
       <ThemeContext.Provider
